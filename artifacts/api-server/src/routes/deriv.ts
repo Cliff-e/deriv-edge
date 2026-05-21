@@ -189,6 +189,65 @@ router.post("/deriv/refresh-token", refreshLimiter, async (req, res) => {
 });
 
 /**
+ * POST /api/deriv/verify-token
+ *
+ * Validates a stored authToken by calling Deriv's OIDC userinfo endpoint
+ * (standard HTTP — no WebSocket needed). Returns:
+ *   { valid: true,  loginid, currency, balance } — token is good
+ *   { valid: false, reason }                     — token is expired / invalid
+ *
+ * Called by the frontend at app startup so stale tokens are caught
+ * immediately rather than causing silent failures mid-session.
+ */
+router.post("/deriv/verify-token", async (req, res) => {
+  const { token } = req.body ?? {};
+
+  if (typeof token !== "string" || !token.trim()) {
+    res.status(400).json({ valid: false, reason: "Missing required field: token" });
+    return;
+  }
+
+  const oauthBase = getOAuthBase(req.hostname ?? "");
+
+  let infoResponse: Response;
+  try {
+    infoResponse = await fetch(`${oauthBase}/oauth2/userinfo`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to reach Deriv userinfo endpoint");
+    res.status(502).json({ valid: false, reason: "Could not reach Deriv API" });
+    return;
+  }
+
+  if (infoResponse.status === 401 || infoResponse.status === 403) {
+    res.json({ valid: false, reason: "Token is invalid or expired" });
+    return;
+  }
+
+  if (!infoResponse.ok) {
+    req.log.warn({ status: infoResponse.status }, "Deriv userinfo returned unexpected status");
+    res.json({ valid: false, reason: `Deriv returned status ${infoResponse.status}` });
+    return;
+  }
+
+  let info: Record<string, unknown>;
+  try {
+    info = (await infoResponse.json()) as Record<string, unknown>;
+  } catch {
+    res.json({ valid: false, reason: "Invalid response from Deriv userinfo" });
+    return;
+  }
+
+  res.json({
+    valid: true,
+    loginid: info.loginid ?? info.sub,
+    currency: info.currency,
+    balance: info.balance,
+  });
+});
+
+/**
  * POST /api/deriv/logout
  *
  * Revokes the user's refresh_token at Deriv's revocation endpoint (RFC 7009).
