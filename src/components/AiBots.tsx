@@ -254,39 +254,46 @@ const AiBots = () => {
         setStatusMsg(reason);
     };
 
-    // ── Init ──────────────────────────────────────────────────────────────
+    // ── Auto-connect when auth is confirmed ───────────────────────────────
+    // Fires once isAuthenticated flips to true (i.e. right after login).
+    // Closes any stale socket first so reconnects on token refresh are clean.
     useEffect(() => {
+        if (!isAuthenticated) return;
+
+        // Close any existing connection before opening a fresh one
+        if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
+            ws.current.close();
+        }
+
+        setAuthorized(false);
+        setStatusMsg("Connecting…");
         connectWS();
+
         return () => ws.current?.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [isAuthenticated]);
 
     // ── Render ────────────────────────────────────────────────────────────
-    if (isVerifying) {
-        return <div style={styles.container}><p>Checking session…</p></div>;
-    }
-
-    if (!isAuthenticated) {
-        return (
-            <div style={styles.container}>
-                <h2>AI Cycle Bot</h2>
-                <p style={{ color: "#ff4444" }}>
-                    You must log in with Deriv before using the bot.
-                </p>
-            </div>
-        );
-    }
-
     return (
         <div style={styles.container}>
             <h2>AI Cycle Bot</h2>
 
             {/* Status bar */}
             <div style={styles.statusBar}>
-                <span style={{ color: authorized ? "#00ff66" : "#ffaa00" }}>
-                    {authorized ? "● Authorized" : "○ Not authorized"}
+                <span style={{
+                    color: isVerifying ? "#aaa"
+                        : !isAuthenticated ? "#ff4444"
+                        : authorized ? "#00ff66"
+                        : "#ffaa00"
+                }}>
+                    {isVerifying ? "○ Checking session…"
+                        : !isAuthenticated ? "○ Waiting for login…"
+                        : authorized ? "● Connected & authorized"
+                        : "○ Connecting…"}
                 </span>
-                <span style={{ color: "#aaa", fontSize: 12 }}>{activeLoginId}</span>
+                <span style={{ color: "#aaa", fontSize: 12 }}>
+                    {activeLoginId ?? ""}
+                </span>
             </div>
             <div style={styles.statusBar}>
                 <span style={{ color: "#aaa", fontSize: 13 }}>{statusMsg}</span>
