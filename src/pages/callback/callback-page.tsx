@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import { clearPkceState, clearPkceVerifier, getPkceState, getPkceVerifier } from '@/auth/pkce-storage';
+import { REFRESH_TOKEN_KEY, storeTokenExpiry } from '@/auth/refresh-token';
 import { crypto_currencies_display_order, fiat_currencies_display_order } from '@/components/shared';
 import { generateDerivApiInstance } from '@/external/bot-skeleton/services/api/appId';
 import { observer as globalObserver } from '@/external/bot-skeleton/utils/observer';
@@ -108,6 +109,8 @@ const PkceCallbackHandler = () => {
 
                 if (tokens.token1) localStorage.setItem('authToken', tokens.token1);
                 if (tokens.acct1) localStorage.setItem('active_loginid', tokens.acct1);
+                if (tokens.refresh_token) localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+                if (tokens.expires_in) storeTokenExpiry(Number(tokens.expires_in));
 
                 const selected_currency = getSelectedCurrency(tokens, clientAccounts, null);
                 window.location.replace(`${window.location.origin}/bot/?account=${selected_currency}`);
