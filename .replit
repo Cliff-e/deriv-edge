@@ -26,3 +26,9 @@ externalPort = 8080
 [[ports]]
 localPort = 8081
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+DERIV_APP_ID = "33gBzpTA0Py8ehX45PBXr"
+VITE_DERIV_APP_ID = "33gBzpTA0Py8ehX45PBXr"

@@ -26,6 +26,16 @@ const getPkceOAuthBaseUrl = (): string => {
 const PKCE_REDIRECT_URI = `${window.location.origin}/callback`;
 
 /**
+ * Returns the app/client ID to use for the PKCE authorize request.
+ * Priority: VITE_DERIV_APP_ID env var (set at build time) > existing getAppId() helper.
+ */
+const resolveClientId = (): string => {
+    const viteAppId = import.meta.env.VITE_DERIV_APP_ID as string | undefined;
+    if (viteAppId) return viteAppId;
+    return String(getAppId());
+};
+
+/**
  * Kicks off the PKCE flow. Call this from a login button handler.
  * The function is async because challenge generation uses SubtleCrypto.
  */
@@ -39,7 +49,7 @@ export const initDerivPkceLogin = async (): Promise<void> => {
 
     const params = new URLSearchParams({
         response_type: 'code',
-        client_id: String(getAppId()),
+        client_id: resolveClientId(),
         redirect_uri: PKCE_REDIRECT_URI,
         code_challenge: challenge,
         code_challenge_method: 'S256',

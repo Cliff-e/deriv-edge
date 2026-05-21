@@ -2,16 +2,16 @@ import { Router, type IRouter } from "express";
 
 const router: IRouter = Router();
 
-/** Map known hostnames to their Deriv app IDs. */
-const HOSTNAME_APP_IDS: Record<string, number> = {
-  "dbot.deriv.com": 65555,
-  "dbot.deriv.be": 65556,
-  "dbot.deriv.me": 65557,
-  "staging-dbot.deriv.com": 29934,
-  "staging-dbot.deriv.be": 29934,
-  "staging-dbot.deriv.me": 29934,
-  "master.bot-standalone.pages.dev": 64584,
-  localhost: 36300,
+/** Map known hostnames to their Deriv app IDs (fallback only). */
+const HOSTNAME_APP_IDS: Record<string, string> = {
+  "dbot.deriv.com": "65555",
+  "dbot.deriv.be": "65556",
+  "dbot.deriv.me": "65557",
+  "staging-dbot.deriv.com": "29934",
+  "staging-dbot.deriv.be": "29934",
+  "staging-dbot.deriv.me": "29934",
+  "master.bot-standalone.pages.dev": "64584",
+  localhost: "36300",
 };
 
 /** Resolve the correct Deriv OAuth base URL from the redirect_uri's hostname. */
@@ -21,10 +21,14 @@ const getOAuthBase = (hostname: string): string => {
   return "https://oauth.deriv.com";
 };
 
-/** Resolve the app_id: env var > hostname map > production fallback. */
-const resolveAppId = (hostname: string): number => {
-  if (process.env.DERIV_APP_ID) return Number(process.env.DERIV_APP_ID);
-  return HOSTNAME_APP_IDS[hostname] ?? 65555;
+/**
+ * Resolve the client_id to send to Deriv.
+ * Priority: DERIV_APP_ID env var (supports both string and numeric IDs) >
+ *           hostname-based map > production numeric fallback.
+ */
+const resolveAppId = (hostname: string): string => {
+  if (process.env.DERIV_APP_ID) return process.env.DERIV_APP_ID;
+  return HOSTNAME_APP_IDS[hostname] ?? "65555";
 };
 
 /**
