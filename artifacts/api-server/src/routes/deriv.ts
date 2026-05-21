@@ -248,6 +248,55 @@ router.post("/deriv/verify-token", async (req, res) => {
 });
 
 /**
+ * POST /api/deriv/account-switch
+ *
+ * Validates the target account's token before the frontend commits the switch.
+ * Accepts { loginid, token } and calls Deriv's userinfo endpoint with the token.
+ * Returns { success: true } so the frontend can safely update authToken +
+ * active_loginid in localStorage without touching any live session data.
+ *
+ * If the token is expired the frontend knows to trigger a full re-login
+ * rather than silently switching to a broken account.
+ */
+router.post("/deriv/account-switch", async (req, res) => {
+  const { loginid, token } = req.body ?? {};
+
+  if (typeof loginid !== "string" || !loginid.trim()) {
+    res.status(400).json({ success: false, reason: "Missing required field: loginid" });
+    return;
+  }
+  if (typeof token !== "string" || !token.trim()) {
+    res.status(400).json({ success: false, reason: "Missing required field: token" });
+    return;
+  }
+
+  const oauthBase = getOAuthBase(req.hostname ?? "");
+
+  let infoResponse: Response;
+  try {
+    infoResponse = await fetch(`${oauthBase}/oauth2/userinfo`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (err) {
+    req.log.error({ err }, "account-switch: failed to reach Deriv userinfo");
+    res.status(502).json({ success: false, reason: "Could not reach Deriv API" });
+    return;
+  }
+
+  if (infoResponse.status === 401 || infoResponse.status === 403) {
+    res.json({ success: false, reason: "Token for this account is invalid or expired — please log in again" });
+    return;
+  }
+
+  if (!infoResponse.ok) {
+    res.json({ success: false, reason: `Deriv returned status ${infoResponse.status}` });
+    return;
+  }
+
+  res.json({ success: true, loginid });
+});
+
+/**
  * POST /api/deriv/logout
  *
  * Revokes the user's refresh_token at Deriv's revocation endpoint (RFC 7009).
