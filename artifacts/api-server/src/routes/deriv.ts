@@ -1,6 +1,20 @@
 import { Router, type IRouter } from "express";
+import rateLimit from "express-rate-limit";
 
 const router: IRouter = Router();
+
+/**
+ * Tight rate limit on the token-exchange endpoint.
+ * 10 attempts per IP per 15 minutes — enough for legitimate retries,
+ * too few to brute-force Deriv's token API.
+ */
+const tokenExchangeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please wait a few minutes and try again." },
+});
 
 /** Map known hostnames to their Deriv app IDs (fallback only). */
 const HOSTNAME_APP_IDS: Record<string, string> = {
@@ -41,7 +55,7 @@ const resolveAppId = (hostname: string): string => {
  * Deriv returns tokens in its acct1/token1/cur1 format, which this route
  * wraps in { tokens: <deriv_response> } for the frontend callback handler.
  */
-router.post("/deriv/token-exchange", async (req, res) => {
+router.post("/deriv/token-exchange", tokenExchangeLimiter, async (req, res) => {
   const { code, code_verifier, redirect_uri } = req.body ?? {};
 
   if (
