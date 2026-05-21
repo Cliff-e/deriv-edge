@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 modules = ["nodejs-24"]
 
 [deployment]
@@ -7,10 +8,19 @@ deploymentTarget = "autoscale"
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
+=======
+modules = ["nodejs-20", "web", "bash"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+>>>>>>> 64bd723 (clean project repo)
 
 [workflows]
 runButton = "Project"
 
+<<<<<<< HEAD
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
@@ -26,3 +36,38 @@ externalPort = 8080
 [[ports]]
 localPort = 8081
 externalPort = 80
+
+[[ports]]
+localPort = 23030
+externalPort = 3000
+=======
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Dev Server"
+
+[[workflows.workflow]]
+name = "Dev Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run start"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[deployment]
+deploymentTarget = "static"
+build = ["npm", "run", "build"]
+publicDir = "dist"
+>>>>>>> 64bd723 (clean project repo)
