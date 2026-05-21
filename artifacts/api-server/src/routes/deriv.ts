@@ -188,4 +188,49 @@ router.post("/deriv/refresh-token", refreshLimiter, async (req, res) => {
   res.json({ tokens: derivData });
 });
 
+/**
+ * POST /api/deriv/logout
+ *
+ * Revokes the user's refresh_token at Deriv's revocation endpoint (RFC 7009).
+ * This invalidates the session server-side even before the token expires.
+ * The frontend should also clear its localStorage after calling this.
+ *
+ * Returns 200 whether or not Deriv accepted the revocation — if the token
+ * was already expired or invalid there is nothing left to revoke, so we
+ * treat it as a successful logout either way.
+ */
+router.post("/deriv/logout", async (req, res) => {
+  const { refresh_token } = req.body ?? {};
+
+  if (typeof refresh_token !== "string" || !refresh_token.trim()) {
+    res.status(400).json({ error: "Missing required field: refresh_token" });
+    return;
+  }
+
+  const appId = process.env.DERIV_APP_ID ?? "65555";
+  const oauthBase = getOAuthBase(req.hostname ?? "");
+
+  const body = new URLSearchParams({
+    token: refresh_token,
+    client_id: appId,
+  });
+
+  try {
+    const derivResponse = await fetch(`${oauthBase}/oauth2/revoke`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+
+    if (!derivResponse.ok) {
+      const detail = await derivResponse.text().catch(() => "");
+      req.log.warn({ status: derivResponse.status, detail }, "Deriv revocation returned non-OK (treating as success)");
+    }
+  } catch (err) {
+    req.log.error({ err }, "Failed to reach Deriv revocation endpoint — logging out locally anyway");
+  }
+
+  res.json({ success: true });
+});
+
 export default router;
