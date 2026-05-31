@@ -16,6 +16,18 @@ declare global {
     }
 }
 
+/**
+ * Bridge tokens from deriv-app login (deriv_access_token) into ddbot format (authToken).
+ * This allows a user who logged in via the /login page to be recognized here.
+ */
+const bridgeDerivAppToken = () => {
+    const derivAppToken = localStorage.getItem('deriv_access_token');
+    const existingAuthToken = localStorage.getItem('authToken');
+    if (derivAppToken && !existingAuthToken) {
+        localStorage.setItem('authToken', derivAppToken);
+    }
+};
+
 const setLocalStorageToken = async (
     loginInfo: URLUtils.LoginInfo[],
     paramsToDelete: string[],
@@ -55,20 +67,15 @@ const setLocalStorageToken = async (
                     const { authorize, error } = await api.authorize(loginInfo[0].token);
                     api.disconnect();
                     if (error) {
-                        // Check if the error is due to an invalid token
                         if (error.code === 'InvalidToken') {
-                            // Set isAuthComplete to true to prevent the app from getting stuck in loading state
                             setIsAuthComplete(true);
 
                             const is_tmb_enabled = window.is_tmb_enabled === true;
-                            // Only emit the InvalidToken event if logged_state is true
                             if (Cookies.get('logged_state') === 'true' && !is_tmb_enabled) {
-                                // Emit an event that can be caught by the application to retrigger OIDC authentication
                                 globalObserver.emit('InvalidToken', { error });
                             }
 
                             if (Cookies.get('logged_state') === 'false') {
-                                // If the user is not logged out, we need to clear the local storage
                                 clearAuthData();
                             }
                         }
@@ -85,7 +92,6 @@ const setLocalStorageToken = async (
                 }
             } catch (apiError) {
                 console.error('[Auth] API connection error:', apiError);
-                // Still set token in offline mode
                 localStorage.setItem('authToken', loginInfo[0].token);
                 localStorage.setItem('active_loginid', loginInfo[0].loginid);
             }
@@ -104,21 +110,22 @@ export const AuthWrapper = () => {
     const { isOnline } = useOfflineDetection();
 
     React.useEffect(() => {
+        // Bridge tokens from deriv-app login before initialising
+        bridgeDerivAppToken();
+
         const initializeAuth = async () => {
             try {
-                // Pass isOnline to setLocalStorageToken to handle offline mode properly
                 await setLocalStorageToken(loginInfo, paramsToDelete, setIsAuthComplete, isOnline);
                 URLUtils.filterSearchParams(['lang']);
                 setIsAuthComplete(true);
             } catch (error) {
                 console.error('[Auth] Authentication initialization failed:', error);
-                // Don't block the app if auth fails, especially when offline
+                // Don't block the app — allow guest preview even when auth fails
                 setIsAuthComplete(true);
             }
         };
 
-        // If offline, set auth complete immediately but still run initializeAuth
-        // to save login info to localStorage for offline use
+        // Allow guest preview immediately when offline
         if (!isOnline) {
             console.log('[Auth] Offline detected, proceeding with minimal auth');
             setIsAuthComplete(true);
@@ -127,18 +134,16 @@ export const AuthWrapper = () => {
         initializeAuth();
     }, [loginInfo, paramsToDelete, isOnline]);
 
-    // Add timeout for offline scenarios to prevent infinite loading
+    // Short timeout so the app is never blocked — enables guest preview mode
     React.useEffect(() => {
-        if (!isOnline && !isAuthComplete) {
-            console.log('[Auth] Offline detected, setting auth timeout');
-            const timeout = setTimeout(() => {
-                console.log('[Auth] Offline timeout reached, proceeding without full auth');
+        const timeout = setTimeout(() => {
+            if (!isAuthComplete) {
+                console.log('[Auth] Timeout reached, proceeding in guest/preview mode');
                 setIsAuthComplete(true);
-            }, 2000); // 2 second timeout for offline
-
-            return () => clearTimeout(timeout);
-        }
-    }, [isOnline, isAuthComplete]);
+            }
+        }, 3000);
+        return () => clearTimeout(timeout);
+    }, [isAuthComplete]);
 
     const getLoadingMessage = () => {
         if (!isOnline) return localize('Loading offline mode...');

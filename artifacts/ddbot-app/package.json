@@ -2,9 +2,6 @@
     "name": "@workspace/ddbot-app",
     "private": true,
     "version": "0.0.1",
-    "engines": {
-        "node": "20.x"
-    },
     "scripts": {
         "dev": "rsbuild dev",
         "start": "rsbuild dev",
@@ -186,16 +183,5 @@
         "sass-embedded-win32-arm64": "1.85.1",
         "sass-embedded-win32-ia32": "1.85.1",
         "sass-embedded-win32-x64": "1.85.1"
-    },
-"overrides": {
-    "cross-spawn": "^7.0.6",
-    "braces": "^3.0.3",
-    "brace-expansion@2.0.1": "2.0.2"
-},
-"pnpm": {
-    "overrides": {
-        "react": "18.3.1",
-        "react-dom": "18.3.1"
     }
-}
 }

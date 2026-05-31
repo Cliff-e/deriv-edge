@@ -4,16 +4,14 @@ import { pluginSass } from '@rsbuild/plugin-sass';
 
 const path = require('path');
 const port = Number(process.env.PORT) || 5000;
+const basePath = process.env.BASE_PATH || '/';
 
 export default defineConfig({
     plugins: [
         pluginSass({
             sassLoaderOptions: {
                 sourceMap: true,
-                sassOptions: {
-                    // includePaths: [path.resolve(__dirname, 'src')],
-                },
-                // additionalData: `@use "${path.resolve(__dirname, 'src/components/shared/styles')}" as *;`,
+                sassOptions: {},
             },
             exclude: /node_modules/,
         }),
@@ -25,6 +23,7 @@ export default defineConfig({
         },
         define: {
             'process.env': {
+                BASE_PATH: JSON.stringify(basePath),
                 TRANSLATIONS_CDN_URL: JSON.stringify(process.env.TRANSLATIONS_CDN_URL),
                 R2_PROJECT_NAME: JSON.stringify(process.env.R2_PROJECT_NAME),
                 CROWDIN_BRANCH_NAME: JSON.stringify(process.env.CROWDIN_BRANCH_NAME),
@@ -44,6 +43,8 @@ export default defineConfig({
                 GROWTHBOOK_DECRYPTION_KEY: JSON.stringify(process.env.GROWTHBOOK_DECRYPTION_KEY),
             },
         },
+    },
+    resolve: {
         alias: {
             react: path.resolve('./node_modules/react'),
             'react-dom': path.resolve('./node_modules/react-dom'),
@@ -69,10 +70,8 @@ export default defineConfig({
             { from: 'node_modules/@deriv/deriv-charts/dist/chart/assets/shaders/*', to: 'assets/shaders/[name][ext]' },
             { from: path.join(__dirname, 'public') },
         ],
-        // Ensure service worker is not cached by the browser
         filename: {
             js: ({ chunk }) => {
-                // Don't add hash to service worker
                 if (chunk?.name === 'sw') {
                     return '[name].js';
                 }
@@ -86,6 +85,7 @@ export default defineConfig({
     server: {
         port,
         host: '0.0.0.0',
+        base: basePath,
         compress: true,
         headers: {
             'Cross-Origin-Opener-Policy': 'unsafe-none',

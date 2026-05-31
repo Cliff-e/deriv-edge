@@ -13,7 +13,6 @@ import { TAuthData } from '@/types/api-types';
 import { initializeI18n, localize, TranslationProvider } from '@deriv-com/translations';
 import CoreStoreProvider from './CoreStoreProvider';
 import './app-root.scss';
-import AiBots from "../pages/AiBots";
 
 const Layout = lazy(() => import('../components/layout'));
 const AppRoot = lazy(() => import('./app-root'));
@@ -38,6 +37,8 @@ const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => {
     return <Suspense fallback={<ChunkLoader message={getLoadingMessage()} />}>{children}</Suspense>;
 };
 
+const basePath = (process.env.BASE_PATH || '/').replace(/\/$/, '') || '/';
+
 const router = createBrowserRouter(
     createRoutesFromElements(
         <Route
@@ -61,20 +62,17 @@ const router = createBrowserRouter(
             <Route path='callback' element={<CallbackPage />} />
             <Route path='free-bots' element={<FreeBots />} />
             <Route path='analysis-tool' element={<AnalysisTool />} />
-            <Route path="/ai-bots" element={<AiBots />} />
+            <Route path='ai-bots' element={<AiBots />} />
         </Route>
-    )
+    ),
+    { basename: basePath }
 );
 
 function App() {
     React.useEffect(() => {
-        // Use the invalid token handler hook to automatically retrigger OIDC authentication
-        // when an invalid token is detected and the cookie logged state is true
-
         initSurvicate();
         window?.dataLayer?.push({ event: 'page_load' });
         return () => {
-            // Clean up the invalid token handler when the component unmounts
             const survicate_box = document.getElementById('survicate-box');
             if (survicate_box) {
                 survicate_box.style.display = 'none';

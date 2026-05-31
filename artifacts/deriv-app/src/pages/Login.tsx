@@ -50,6 +50,14 @@ export function Login() {
             <div className="text-xs text-center text-muted-foreground pt-2">
               By logging in, you agree to our Terms of Service and Privacy Policy.
             </div>
+            <div className="text-center pt-1">
+              <a
+                href="/bot/"
+                className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
+              >
+                Preview the trading app →
+              </a>
+            </div>
           </CardContent>
         </Card>
       </div>

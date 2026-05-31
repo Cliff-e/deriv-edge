@@ -1,6 +1,6 @@
 kind = "web"
-previewPath = "/"
-title = "DDBOt"
+previewPath = "/bot"
+title = "Deriv Edge Bot"
 version = "1.0.0"
 id = "artifacts/ddbot-app"
 router = "path"
@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/" ]
+paths = [ "/bot" ]
 localPort = 23030
 
 [services.development]
@@ -28,4 +28,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "23030"
-BASE_PATH = "/"
+BASE_PATH = "/bot"

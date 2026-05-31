@@ -18,9 +18,11 @@ export function AuthCallback() {
 
         setStatus("Securing session...");
         localStorage.setItem("deriv_access_token", token1);
+        // Also set authToken in ddbot-app format for compatibility
+        localStorage.setItem("authToken", token1);
 
-        setStatus("Loading dashboard...");
-        setTimeout(() => setLocation("/dashboard"), 600);
+        setStatus("Loading trading app...");
+        setTimeout(() => { window.location.href = "/bot/"; }, 600);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Authentication failed.";
         setError(message);
