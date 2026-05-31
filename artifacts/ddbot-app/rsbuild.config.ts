@@ -95,6 +95,7 @@ export default defineConfig({
     },
     dev: {
         hmr: true,
+        lazyCompilation: false,
     },
     tools: {
         rspack: {
